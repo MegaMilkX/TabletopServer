@@ -1,6 +1,9 @@
 #ifndef HTTPREQUEST_H
 #define HTTPREQUEST_H
 
+#include <map>
+#include <iostream>
+
 #include "util.h"
 
 class HTTPRequest
