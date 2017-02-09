@@ -23,4 +23,21 @@ inline std::vector<std::string> split(const std::string& str, const std::string&
     return result;
 }
 
+inline std::string replace_char(const std::string& str, char from, char to)
+{
+    std::string result = str;
+    for(unsigned i = 0; i < result.size(); ++i)
+    {
+        if(result[i] == from)
+            result[i] = to;
+    }
+    return result;
+}
+
+inline std::string FileNameExtension(const std::string& fileName)
+{
+    size_t pos = fileName.find_last_of('.');
+    return fileName.substr(pos + 1, std::string::npos);
+}
+
 #endif
