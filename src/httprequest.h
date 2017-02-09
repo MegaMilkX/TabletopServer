@@ -27,6 +27,18 @@ public:
             return -3;
         method = requestLine[0];
         uri = requestLine[1];
+        
+        if(method == "GET")
+        {
+            size_t pos = uri.find('?');
+            if(pos != std::string::npos)
+            {
+                std::vector<std::string> prts = split(uri, "?");
+                uri = prts[0];
+                ParseParams(prts[1]);
+            }
+        }
+        
         http = requestLine[2];
         
         for(unsigned i = 1; i < lines.size(); ++i)
@@ -56,13 +68,32 @@ public:
         }
     }
     
+    std::string Header(const std::string& header) { return headers[header]; }
+    std::map<std::string, std::string> Params() { return params; }
     std::string Method() { return method; }
     std::string URI() { return uri; }
 private:
+    void ParseParams(const std::string& str)
+    {
+        std::vector<std::string> p = split(str, "&");
+        if(p.empty())
+            p.push_back(str);
+        
+        for(unsigned i = 0; i < p.size(); ++i)
+        {
+            std::vector<std::string> kv = split(p[i], "=");
+            if(kv.empty())
+                params.insert(std::make_pair(p[i], ""));
+            else
+                params.insert(std::make_pair(kv[0], kv[1]));
+        }
+    }
+
     std::string method;
     std::string uri;
     std::string http;
     std::map<std::string, std::string> headers;
+    std::map<std::string, std::string> params;
 };
 
 #endif
