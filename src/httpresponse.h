@@ -15,14 +15,14 @@ public:
     message("OK")
     {}
     
-    operator std::string()
+    operator std::string() const
     {
         std::string response;
         response += version + " ";
         response += status + " ";
         response += message + "\r\n";
         
-        std::map<std::string, std::string>::iterator it = headers.begin();
+        std::map<std::string, std::string>::const_iterator it = headers.begin();
         for(it; it != headers.end(); ++it)
         {
             response += it->first + ": ";
