@@ -70,8 +70,13 @@ public:
             }
             while((dataRead = request.FromString(data)) < 0);
             
+            delete[] buf;
+            
             if(received == SOCKET_ERROR)
+            {
+                closesocket(newSocket);
                 continue;
+            }
             
             if(dataRead > 0)
                 leftoverData = data.substr(dataRead, std::string::npos);
@@ -122,8 +127,6 @@ public:
             }
             
             Send(newSocket, response);
-            
-            delete[] buf;
             closesocket(newSocket);
         }
         
