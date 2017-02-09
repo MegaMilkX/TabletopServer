@@ -1,6 +1,8 @@
 #ifndef HTTPSERVER_H
 #define HTTPSERVER_H
 
+#include <fstream>
+
 #include<winsock2.h>
 #pragma comment(lib,"ws2_32.lib")
 
@@ -51,8 +53,10 @@ public:
             if(newSocket == INVALID_SOCKET)
                 continue;
             
-            HTTPRequest request;
             char* buf = new char[512];
+    
+            HTTPRequest request;
+            
             std::string data = leftoverData;
             size_t dataRead = 0;
             
@@ -66,30 +70,54 @@ public:
             
             request.Print();
             
+            HTTPResponse response;
+            response.Header("Server", "D&D");
+            
             if(modules[request.URI()] != 0)
             {
+                modules[request.URI()]->Params(request.Params());
+                
                 std::string html = modules[request.URI()]->HTML();
-                HTTPResponse response;
-                response.Header("Server", "D&D");
+                
                 response.Header("Content-Type", "text/html; charset=UTF-8");
                 response.Data(html);
                 
                 std::string resp = response;
                 
-                send(newSocket, resp.c_str(), resp.size(), 0);
+                Send(newSocket, resp.c_str(), resp.size());
                 
-                std::cout << resp << std::endl;
+                
             }
             else
             {
-                HTTPResponse response;
-                response.Status("404");
-                std::string resp = response;
-                send(newSocket, resp.c_str(), resp.size(), 0);
+                std::ifstream file;
+                std::string filePath = replace_char(request.URI(), '/', '\\');
+                if(filePath[0] == '\\')
+                    filePath.erase(filePath.begin());
+                file.open(filePath, std::ios::binary | std::ios::ate);
+                
+                if(!file)
+                {
+                    response.Status("404");
+                    Send(newSocket, response);
+                }
+                else
+                {
+                    std::streamsize size = file.tellg();
+                    file.seekg(0, std::ios::beg);
+                    std::vector<char> buffer(size);
+                    file.read(buffer.data(), size);
+                    
+                    std::string dataStr(buffer.begin(), buffer.end());
+                    response.Data(dataStr);
+                    response.Header("Content-Type", GetMIMEType(request.URI()));
+                    Send(newSocket, response);
+                }
             }
             
-            delete[] buf;
+            //std::cout << (std::string)response << std::endl;
             
+            delete[] buf;
             closesocket(newSocket);
         }
         
@@ -105,13 +133,46 @@ public:
                 delete it->second;
         modules.insert(std::make_pair(path, new T));
     }
+    
+    void AddMIME(const std::string& extension, const std::string& mime)
+    {
+        mimeTypes[extension] = mime;
+    }
+    
 private:
+    void Send(SOCKET sock, const HTTPResponse& response)
+    {
+        std::string resp = response;
+        Send(sock, resp.c_str(), resp.size());
+    }
+
+    void Send(SOCKET sock, const char* ptr, size_t len)
+    {
+        int sent = 0;
+        while((unsigned int)sent < len)
+        {
+            sent = send(sock, ptr + sent, len - sent, 0);
+            if(sent == SOCKET_ERROR)
+                break;
+        }
+    }
+    
+    std::string GetMIMEType(const std::string& fileName)
+    {
+        std::map<std::string, std::string>::iterator it = mimeTypes.find(FileNameExtension(fileName));
+        if(it == mimeTypes.end())
+            return "application/octet-stream";
+        else
+            return it->second;
+    }
+
     WSADATA wsa;
     SOCKET masterSocket, newSocket;
     sockaddr_in srv, client;
     std::string leftoverData;
     
     std::map<std::string, HTTPModule*> modules;
+    std::map<std::string, std::string> mimeTypes;
 };
 
 #endif
