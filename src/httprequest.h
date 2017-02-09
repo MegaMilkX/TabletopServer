@@ -28,15 +28,13 @@ public:
         method = requestLine[0];
         uri = requestLine[1];
         
-        if(method == "GET")
+        std::string::size_type pos = uri.find('?');
+        if(pos != std::string::npos)
         {
-            size_t pos = uri.find('?');
-            if(pos != std::string::npos)
-            {
-                std::vector<std::string> prts = split(uri, "?");
-                uri = prts[0];
+            std::vector<std::string> prts = split(uri, "?");
+            uri = prts[0];
+            if(method == "GET")
                 ParseParams(prts[1]);
-            }
         }
         
         http = requestLine[2];
