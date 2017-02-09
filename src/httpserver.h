@@ -74,7 +74,7 @@ public:
                 continue;
             
             if(dataRead > 0)
-                leftoverData = data.substr(dataRead - 1, std::string::npos);
+                leftoverData = data.substr(dataRead, std::string::npos);
             request.Print();
             
             HTTPResponse response;
