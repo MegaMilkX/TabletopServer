@@ -131,7 +131,7 @@ public:
     }
     
     template<typename T>
-    void AddHandler(const std::string& path)
+    void SetHandler(const std::string& path)
     {
         std::map<std::string, HTTPRequestHandler*>::iterator it = handlers.find(path);
         if(it != handlers.end())
@@ -140,7 +140,7 @@ public:
         handlers.insert(std::make_pair(path, new T));
     }
     
-    void AddMIME(const std::string& extension, const std::string& mime)
+    void SetMIME(const std::string& extension, const std::string& mime)
     {
         mimeTypes[extension] = mime;
     }
