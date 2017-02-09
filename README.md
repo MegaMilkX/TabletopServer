@@ -20,11 +20,11 @@ int main()
     HTTPServer server;
     server.Init();
     
-    server.AddHandler<IndexHandler>("/");
+    server.SetHandler<IndexHandler>("/");
     
-    server.AddMIME("css", "text/css");
-    server.AddMIME("ico", "image/x-icon");
-    server.AddMIME("png", "image/png");
+    server.SetMIME("css", "text/css");
+    server.SetMIME("ico", "image/x-icon");
+    server.SetMIME("png", "image/png");
     
     server.Run();
     
