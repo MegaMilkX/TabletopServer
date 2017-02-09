@@ -58,16 +58,22 @@ public:
             HTTPRequest request;
             
             std::string data = leftoverData;
-            size_t dataRead = 0;
-            
+            int dataRead = 0;
+            int received = 0;
             do
             {
-                size_t received = recv(newSocket, buf, 512, 0);
+                int received = recv(newSocket, buf, 512, 0);
+                if(received == SOCKET_ERROR || !received)
+                    break;
                 data += std::string(buf, buf + received);
             }
             while((dataRead = request.FromString(data)) < 0);
-            leftoverData = data.substr(dataRead, std::string::npos);
             
+            if(received == SOCKET_ERROR)
+                continue;
+            
+            if(dataRead > 0)
+                leftoverData = data.substr(dataRead - 1, std::string::npos);
             request.Print();
             
             HTTPResponse response;
