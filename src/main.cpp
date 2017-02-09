@@ -15,14 +15,14 @@ int main()
     HTTPServer server;
     server.Init();
     
-    server.AddHandler<IndexHandler>("/");
+    server.SetHandler<IndexHandler>("/");
     
-    server.AddMIME("css", "text/css");
-    server.AddMIME("ico", "image/x-icon");
-    server.AddMIME("png", "image/png");
-    server.AddMIME("html", "text/html");
-    server.AddMIME("js", "application/javascript");
-    server.AddMIME("jpg", "image/jpg");
+    server.SetMIME("css", "text/css");
+    server.SetMIME("ico", "image/x-icon");
+    server.SetMIME("png", "image/png");
+    server.SetMIME("html", "text/html");
+    server.SetMIME("js", "application/javascript");
+    server.SetMIME("jpg", "image/jpg");
     
     server.Run();
     
