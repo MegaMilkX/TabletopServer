@@ -8,7 +8,7 @@
 
 #include "httprequest.h"
 #include "httpresponse.h"
-#include "httpmodule.h"
+#include "httprequesthandler.h"
 
 class HTTPServer
 {
@@ -33,10 +33,11 @@ public:
     
     void Cleanup()
     {
-        std::map<std::string, HTTPModule*>::iterator it = modules.begin();
-        for(it; it != modules.end(); ++it)
+        std::map<std::string, HTTPRequestHandler*>::iterator it = handlers.begin();
+        for(it; it != handlers.end(); ++it)
         {
-            delete it->second;
+            if(it->second != 0)
+                delete it->second;
         }
         
         closesocket(masterSocket);
@@ -77,22 +78,10 @@ public:
             request.Print();
             
             HTTPResponse response;
-            response.Header("Server", "D&D");
             
-            if(modules[request.URI()] != 0)
+            if(handlers[request.URI()] != 0)
             {
-                modules[request.URI()]->Params(request.Params());
-                
-                std::string html = modules[request.URI()]->HTML();
-                
-                response.Header("Content-Type", "text/html; charset=UTF-8");
-                response.Data(html);
-                
-                std::string resp = response;
-                
-                Send(newSocket, resp.c_str(), resp.size());
-                
-                
+                (*handlers[request.URI()])(request, response);
             }
             else
             {
@@ -100,28 +89,39 @@ public:
                 std::string filePath = replace_char(request.URI(), '/', '\\');
                 if(filePath[0] == '\\')
                     filePath.erase(filePath.begin());
-                file.open(filePath, std::ios::binary | std::ios::ate);
                 
-                if(!file)
+                std::map<std::string, std::string>::iterator it =
+                    mimeTypes.find(FileNameExtension(filePath));
+                    
+                if(it == mimeTypes.end())
                 {
                     response.Status("404");
-                    Send(newSocket, response);
                 }
                 else
                 {
-                    std::streamsize size = file.tellg();
-                    file.seekg(0, std::ios::beg);
-                    std::vector<char> buffer(size);
-                    file.read(buffer.data(), size);
-                    
-                    std::string dataStr(buffer.begin(), buffer.end());
-                    response.Data(dataStr);
-                    response.Header("Content-Type", GetMIMEType(request.URI()));
-                    Send(newSocket, response);
+                    file.open(filePath, std::ios::binary | std::ios::ate);
+                
+                    if(!file)
+                    {
+                        response.Status("404");
+                    }
+                    else
+                    {
+                        std::streamsize size = file.tellg();
+                        file.seekg(0, std::ios::beg);
+                        std::vector<char> buffer(size);
+                        file.read(buffer.data(), size);
+                        
+                        std::string dataStr(buffer.begin(), buffer.end());
+                        response.Data(dataStr);
+                        response.Header("Content-Type", GetMIMEType(request.URI()));
+                        
+                        file.close();
+                    }
                 }
             }
             
-            //std::cout << (std::string)response << std::endl;
+            Send(newSocket, response);
             
             delete[] buf;
             closesocket(newSocket);
@@ -131,13 +131,13 @@ public:
     }
     
     template<typename T>
-    void AddModule(const std::string& path)
+    void AddHandler(const std::string& path)
     {
-        std::map<std::string, HTTPModule*>::iterator it = modules.find(path);
-        if(it != modules.end())
+        std::map<std::string, HTTPRequestHandler*>::iterator it = handlers.find(path);
+        if(it != handlers.end())
             if(it->second != 0)
                 delete it->second;
-        modules.insert(std::make_pair(path, new T));
+        handlers.insert(std::make_pair(path, new T));
     }
     
     void AddMIME(const std::string& extension, const std::string& mime)
@@ -177,7 +177,7 @@ private:
     sockaddr_in srv, client;
     std::string leftoverData;
     
-    std::map<std::string, HTTPModule*> modules;
+    std::map<std::string, HTTPRequestHandler*> handlers;
     std::map<std::string, std::string> mimeTypes;
 };
 
