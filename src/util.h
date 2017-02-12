@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+namespace util
+{
+    
 inline std::vector<std::string> split(const std::string& str, const std::string& delim)
 {
     std::vector<std::string> result;
@@ -38,6 +41,34 @@ inline std::string FileNameExtension(const std::string& fileName)
 {
     size_t pos = fileName.find_last_of('.');
     return fileName.substr(pos + 1, std::string::npos);
+}
+
+inline std::string urlDecode(std::string &SRC)
+{
+    std::string ret;
+    char ch;
+    int i, ii;
+    for (i=0; i<SRC.length(); i++) 
+    {
+        if (int(SRC[i])==37) 
+        {
+            sscanf(SRC.substr(i+1,2).c_str(), "%x", &ii);
+            ch=static_cast<char>(ii);
+            ret+=ch;
+            i=i+2;
+        } 
+        else if (SRC[i]=='+')
+        {
+            ret+=' ';
+        }
+        else 
+        {
+            ret+=SRC[i];
+        }
+    }
+    return (ret);
+}
+
 }
 
 #endif
