@@ -81,6 +81,7 @@ public:
             if(dataRead > data.size())
                 leftoverData = data.substr(dataRead, std::string::npos);
             //request.Print();
+            //std::cout << request.Path() << std::endl;
             
             HTTPResponse response;
             
