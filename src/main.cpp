@@ -13,6 +13,13 @@ DB_TABLE(
 );
 
 DB_TABLE(
+    SpellData,
+    (table_key) id,
+    (std::string) name,
+    (std::string) desc
+);
+
+DB_TABLE(
     CharacterData,
     (table_key) id,
     (std::string) name,
@@ -49,7 +56,7 @@ public:
             nlohmann::json j = nlohmann::json::parse(result[i].ToJSON());
             json["CharacterData"][i] = j;
         }
-        std::cout << std::setw(4) << json << std::endl;
+
         tpl.SetJsonData(json.dump());
         
         response.Header("Content-Type", "text/html; charset=UTF-8");
@@ -141,6 +148,18 @@ public:
     }
 };
 
+class UploadHandler : public HTTPRequestHandler
+{
+public:
+    void operator()(const HTTPRequest& request, HTTPResponse& response)
+    {
+        std::vector<char> data = request.FileData("file");
+        std::ofstream fout(std::string("data") + "." + util::FileNameExtension(request.FileName("file")), std::ios::out | std::ios::binary);
+        fout.write((char*)&data[0], data.size());
+        fout.close();
+    }
+};
+
 int main()
 {
     g_db.Init();
@@ -152,6 +171,7 @@ int main()
     server.SetHandler<CharacterHandler>("/character");
     server.SetHandler<UpdateHandler>("/upd");
     server.SetHandler<AddHandler>("/add");
+    server.SetHandler<UploadHandler>("/upload");
     
     server.SetMIME("css", "text/css");
     server.SetMIME("ico", "image/x-icon");
