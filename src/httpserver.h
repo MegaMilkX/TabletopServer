@@ -78,25 +78,25 @@ public:
                 continue;
             }
             
-            if(dataRead > 0)
+            if(dataRead > data.size())
                 leftoverData = data.substr(dataRead, std::string::npos);
-            request.Print();
+            //request.Print();
             
             HTTPResponse response;
             
-            if(handlers[request.URI()] != 0)
+            if(handlers[request.Path()] != 0)
             {
-                (*handlers[request.URI()])(request, response);
+                (*handlers[request.Path()])(request, response);
             }
             else
             {
                 std::ifstream file;
-                std::string filePath = replace_char(request.URI(), '/', '\\');
+                std::string filePath = util::replace_char(request.Path(), '/', '\\');
                 if(filePath[0] == '\\')
                     filePath.erase(filePath.begin());
                 
                 std::map<std::string, std::string>::iterator it =
-                    mimeTypes.find(FileNameExtension(filePath));
+                    mimeTypes.find(util::FileNameExtension(filePath));
                     
                 if(it == mimeTypes.end())
                 {
@@ -119,7 +119,7 @@ public:
                         
                         std::string dataStr(buffer.begin(), buffer.end());
                         response.Data(dataStr);
-                        response.Header("Content-Type", GetMIMEType(request.URI()));
+                        response.Header("Content-Type", GetMIMEType(request.Path()));
                         
                         file.close();
                     }
@@ -168,7 +168,7 @@ private:
     
     std::string GetMIMEType(const std::string& fileName)
     {
-        std::map<std::string, std::string>::iterator it = mimeTypes.find(FileNameExtension(fileName));
+        std::map<std::string, std::string>::iterator it = mimeTypes.find(util::FileNameExtension(fileName));
         if(it == mimeTypes.end())
             return "application/octet-stream";
         else
