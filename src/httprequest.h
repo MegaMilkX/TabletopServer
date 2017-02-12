@@ -63,8 +63,12 @@ public:
             {
                 ParseParams(content);
             }
+            else if(contentType.find("multipart/form-data") != std::string::npos)
+            {
+                ParseMultipartFormData(content);
+            }
         }
-        
+        //std::cout << content << std::endl;
         return endPos + endStr.size() + contentLen;
     }
     
@@ -113,6 +117,21 @@ public:
     std::string Method() const { return method; }
     std::string URI() const { return uri; }
     std::string Path() const { return path; }
+    
+    std::vector<char> FileData(const std::string& name) const
+    {
+        if(files.find(name) == files.end())
+            return std::vector<char>();
+        return files.at(name); 
+    }
+    
+    std::string FileName(const std::string& name) const
+    {
+        if(fileNames.find(name) == fileNames.end())
+            return "";
+        return fileNames.at(name);
+    }
+    
 private:
     void ParseParams(const std::string& str)
     {
@@ -123,11 +142,94 @@ private:
         for(unsigned i = 0; i < p.size(); ++i)
         {
             std::vector<std::string> kv = util::split(p[i], "=");
-            if(kv.empty())
+            if(kv.size() < 2)
                 params.insert(std::make_pair(p[i], ""));
             else
                 params.insert(std::make_pair(kv[0], kv[1]));
         }
+    }
+    
+    void ParseMultipartFormData(const std::string& data)
+    {
+        std::map<std::string, std::string> map = ParseHeaderData(Header<std::string>("Content-Type"));
+        
+        std::string boundary = map["boundary"];
+        
+        std::string lastBoundary = std::string("\r\n--") + boundary + "--";
+        std::string dataStr = data.substr(0, data.find(lastBoundary));
+        
+        std::vector<std::string> parts = util::split(dataStr, boundary);
+        
+        for(unsigned i = 0; i < parts.size(); ++i)
+        {
+            ParseFormDataPart(parts[i]);
+        }
+    }
+    
+    void ParseFormDataPart(const std::string& part)
+    {
+        size_t payloadPos = part.find("\r\n\r\n");
+        if(payloadPos == std::string::npos)
+            return;
+        payloadPos += 4;
+        
+        std::vector<std::string> headers = util::split(part.substr(0, payloadPos-4), "\r\n");
+        for(unsigned i = 0; i < headers.size(); ++i)
+        {
+            std::vector<std::string> kv = util::split(headers[i], ": ");
+            if(kv.size() < 2)
+                continue;
+            
+            if(kv[0] == "Content-Disposition")
+            {
+                std::map<std::string, std::string> map = ParseHeaderData(kv[1]);
+                std::string name = map["name"];
+                name.erase(name.find_last_of("\""), 1);
+                name.erase(name.find_first_of("\""), 1);
+                std::string payload = part.substr(payloadPos, std::string::npos);
+                files[name] = std::vector<char>(payload.begin(), payload.end());
+                std::string filename = map["filename"];
+                filename.erase(filename.find_last_of("\""), 1);
+                filename.erase(filename.find_first_of("\""), 1);
+                fileNames[name] = filename;
+                //std::cout << payload << std::endl;
+                //std::cout << name << ": " << payload;
+            }
+        }
+    }
+    
+    std::map<std::string, std::string> ParseHeaderData(const std::string& data)
+    {
+        std::map<std::string, std::string> values;
+        if(data.empty())
+            return values;
+        
+        std::vector<std::string> parts = util::split(data, ";");
+        
+        for(unsigned i = 0; i < parts.size(); ++i)
+        {
+            parts[i] = util::trim(parts[i]);
+            
+            std::vector<std::string> commaParts = util::split(parts[i], ",");
+            if(commaParts.empty())
+                commaParts.push_back(parts[i]);
+            
+            for(unsigned j = 0; j < commaParts.size(); ++j)
+            {
+                std::vector<std::string> kv = util::split(commaParts[j], "=");
+                if(kv.empty())
+                {
+                    values[commaParts[j]] = "";
+                }
+                else
+                {
+                    values[kv[0]] = kv[1];
+                }
+            }
+            
+        }
+        
+        return values;
     }
 
     std::string method;
@@ -136,6 +238,8 @@ private:
     std::string http;
     std::map<std::string, std::string> headers;
     std::map<std::string, std::string> params;
+    std::map<std::string, std::vector<char>> files;
+    std::map<std::string, std::string> fileNames;
 };
 
 #endif
