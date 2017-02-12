@@ -59,8 +59,6 @@ public:
     
     void SetJsonDataImpl(std::string& name, nlohmann::json& json, lua_State* L)
     {
-        std::cout << name << std::endl;
-        std::cout << json << std::endl;
         if(json.is_null())
             return;
         else if(json.is_boolean())
