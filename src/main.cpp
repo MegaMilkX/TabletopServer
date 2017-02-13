@@ -49,12 +49,21 @@ public:
         
         std::vector<CharacterData> result = 
             g_db.Select<CharacterData>({"id", "name"}).Exec();
+            
+        std::vector<LocationData> locResult = 
+            g_db.Select<LocationData>({"id", "name"}).Exec();
         
         nlohmann::json json;
         for(unsigned i = 0; i < result.size(); ++i)
         {
             nlohmann::json j = nlohmann::json::parse(result[i].ToJSON());
             json["CharacterData"][i] = j;
+        }
+        
+        for(unsigned i = 0; i < locResult.size(); ++i)
+        {
+            nlohmann::json j = nlohmann::json::parse(locResult[i].ToJSON());
+            json["LocationData"][i] = j;
         }
 
         tpl.SetJsonData(json.dump());
@@ -101,8 +110,29 @@ public:
         html.Place("wisMod", std::to_string((charData.wisdom - 10) / 2));
         html.Place("chaMod", std::to_string((charData.charisma - 10) / 2));
         */
-        
         tpl.SetJsonData(charData.ToJSON());
+        
+        response.Header("Content-Type", "text/html; charset=UTF-8");
+        response.Data(tpl.Render());
+    }
+};
+
+class LocationHandler : public HTTPRequestHandler
+{
+public:
+    void operator()(const HTTPRequest& request, HTTPResponse& response)
+    {
+        HTMLTemplate tpl("location.html");
+        
+        std::vector<LocationData> result =
+            g_db.Select<LocationData>({}).Where("id").Eq(request["id"]).Exec();
+            
+        if(result.empty())
+        {
+            Handler404()(request, response);
+            return;
+        }
+        tpl.SetJsonData(result[0].ToJSON());
         
         response.Header("Content-Type", "text/html; charset=UTF-8");
         response.Data(tpl.Render());
@@ -121,6 +151,13 @@ public:
                 {request["name"]},
                 {util::urlDecode(request["value"])}
             ).Where("id").Eq(request["charId"]).Exec();
+        }
+        else if(request["object"] == "location")
+        {    
+            g_db.Update<LocationData>(
+                {request["name"]},
+                {util::urlDecode(request["value"])}
+            ).Where("id").Eq(request["id"]).Exec();
         }
     }
 };
@@ -141,6 +178,14 @@ public:
             charData.wisdom = 10;
             charData.charisma = 10;
             g_db.Insert(charData).Exec();
+        }
+        else if(request["object"] == "location")
+        {
+            LocationData location = { 0 };
+            location.name = "LocationName";
+            location.desc = "";
+            location.population = 0;
+            g_db.Insert(location).Exec();
         }
         
         response.Status("302");
@@ -169,6 +214,7 @@ int main()
     
     server.SetHandler<IndexHandler>("/");
     server.SetHandler<CharacterHandler>("/character");
+    server.SetHandler<LocationHandler>("/location");
     server.SetHandler<UpdateHandler>("/upd");
     server.SetHandler<AddHandler>("/add");
     server.SetHandler<UploadHandler>("/upload");
