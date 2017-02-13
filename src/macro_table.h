@@ -5,6 +5,8 @@
 #include "macro_typed_expr.h"
 #include "macro_narg.h"
 
+#include "ext/json.hpp"
+
 #define FIELD_DEF(INDEX, ARG) \
     TYPEOF(ARG) STRIP(ARG);
     
@@ -98,18 +100,12 @@
         } \
         std::string ToJSON() \
         { \
-            std::string json = "{\n"; \
+            nlohmann::json json; \
             for(unsigned i = 0; i < GetFieldCount(); ++i) \
             { \
-                json += "\""; \
-                json += GetFieldName(i); \
-                json += "\": "; \
-                json += GetJsonVal(i); \
-                if(i < GetFieldCount() - 1) \
-                    json += ",\n"; \
+                json[GetFieldName(i)] = ToJsonVal(GetFieldValue(i)); \
             } \
-            json += "\n}\n"; \
-            return json; \
+            return json.dump(); \
         } \
         std::string GetJsonVal(unsigned index) \
         { \
@@ -127,17 +123,19 @@ public:
 private:
   long long _internal;
 };
-    
+
 template<typename T>
-inline std::string ToJsonVal(const T& value)
+inline nlohmann::json ToJsonVal(const T& value)
 {
-    return std::to_string(value);
+    nlohmann::json j = value;
+    return j;
 }
 
 template<>
-inline std::string ToJsonVal(const std::string& value)
+inline nlohmann::json ToJsonVal(const std::string& value)
 {
-    return std::string("\"") + value + "\"";
+    nlohmann::json j = value;
+    return j;
 }
 
 template<typename T>
@@ -161,7 +159,7 @@ inline std::string ToStringSQLInsert(const T& value)
 template<>
 inline std::string ToStringSQLInsert(const std::string& value)
 {
-    return std::string("'") + value + "'";
+    return value;
 }
 
 template<>
