@@ -44,9 +44,8 @@ public:
     
     QuerySelect<T>& Eq(const std::string& value)
     {
-        query += " = '";
-        query += value;
-        query += "' ";
+        query += " = ?";
+        values.push_back(value);
         return *this;
     }
     
@@ -65,6 +64,16 @@ public:
             return result;
         }
         
+        int loc = 0;
+        for(unsigned i = 0; i < values.size(); ++i)
+        {
+            if((rc = sqlite3_bind_text(stmt, ++loc, values[i].c_str(), -1, SQLITE_TRANSIENT)) != SQLITE_OK)
+            {
+                std::cout << "sqlite3_bind_text failed" << std::endl;
+                std::cout << rc << " " << sqlite3_errmsg(db) << std::endl;
+            }
+        }
+        
         while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
         {
             T row = { 0 };
@@ -79,6 +88,7 @@ public:
 private:
     std::string query;
     std::vector<std::string> fields;
+    std::vector<std::string> values;
     sqlite3* db;
 };
 
@@ -99,7 +109,7 @@ public:
         for(unsigned i = 0; i < fields.size() && i < values.size(); ++i)
         {
             query += std::string(" ");
-            query += fields[i] + " = " + "'" + values[i] + "'";
+            query += fields[i] + " = " + "?";
             if((i < fields.size() - 1) && (i < values.size() - 1))
                 query += ",";
         }
@@ -115,9 +125,8 @@ public:
     
     QueryUpdate<T>& Eq(const std::string& value)
     {
-        query += " = '";
-        query += value;
-        query += "' ";
+        query += " = ?";
+        values.push_back(value);
         return *this;
     }
     
@@ -133,6 +142,16 @@ public:
             std::cout << "sqlite3_prepare_v2 failed" << std::endl;
             std::cout << rc << " " << sqlite3_errmsg(db) << std::endl;
             return;
+        }
+        
+        int loc = 0;
+        for(unsigned i = 0; i < values.size(); ++i)
+        {
+            if((rc = sqlite3_bind_text(stmt, ++loc, values[i].c_str(), -1, SQLITE_TRANSIENT)) != SQLITE_OK)
+            {
+                std::cout << "sqlite3_bind_text failed" << std::endl;
+                std::cout << rc << " " << sqlite3_errmsg(db) << std::endl;
+            }
         }
         
         if((rc = sqlite3_step(stmt)) != SQLITE_DONE)
@@ -171,7 +190,7 @@ public:
         query += "VALUES (";
         for(unsigned i = 0; i < T::GetFieldCount(); ++i)
         {
-            query += data.GetFieldValueForSQLInsert(i);
+            query += "?";
             if(i < T::GetFieldCount() - 1)
                 query += ",";
         }
@@ -190,6 +209,26 @@ public:
             std::cout << "sqlite3_prepare_v2 failed" << std::endl;
             std::cout << rc << " " << sqlite3_errmsg(db) << std::endl;
             return;
+        }
+        
+        int loc = 0;
+        for(unsigned i = 0; i < T::GetFieldCount(); ++i)
+        {
+            std::string val = data.GetFieldValueForSQLInsert(i);
+            if(val == "NULL")
+            {
+                if((rc = sqlite3_bind_null(stmt, ++loc)) != SQLITE_OK)
+                {
+                    std::cout << "sqlite3_bind_text failed" << std::endl;
+                    std::cout << rc << " " << sqlite3_errmsg(db) << std::endl;
+                }
+                continue;
+            }
+            if((rc = sqlite3_bind_text(stmt, ++loc, val.c_str(), -1, SQLITE_TRANSIENT)) != SQLITE_OK)
+            {
+                std::cout << "sqlite3_bind_text failed" << std::endl;
+                std::cout << rc << " " << sqlite3_errmsg(db) << std::endl;
+            }
         }
         
         if((rc = sqlite3_step(stmt)) != SQLITE_DONE)
