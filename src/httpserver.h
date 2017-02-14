@@ -47,6 +47,7 @@ public:
     int Run()
     {
         int c = 0;
+        char* buf = new char[512];
         while(!listen(masterSocket, 3))
         {
             c = sizeof(sockaddr_in);
@@ -54,8 +55,9 @@ public:
             if(newSocket == INVALID_SOCKET)
                 continue;
             
-            char* buf = new char[512];
-    
+            // Make socket non-blocking
+            ioctlsocket(newSocket, FIONBIO, (u_long*)1);
+            
             HTTPRequest request;
             
             std::string data = leftoverData;
@@ -66,11 +68,14 @@ public:
                 int received = recv(newSocket, buf, 512, 0);
                 if(received == SOCKET_ERROR || !received)
                     break;
+                if(received == EWOULDBLOCK)
+                {
+                    closesocket(newSocket);
+                    continue;
+                }
                 data += std::string(buf, buf + received);
             }
             while((dataRead = request.FromString(data)) < 0);
-            
-            delete[] buf;
             
             if(received == SOCKET_ERROR)
             {
@@ -130,6 +135,7 @@ public:
             Send(newSocket, response);
             closesocket(newSocket);
         }
+        delete[] buf;
         
         return 0;
     }
