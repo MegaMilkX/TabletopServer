@@ -5,6 +5,13 @@
 Database g_db;
 
 DB_TABLE(
+    ModuleData,
+    (table_key) id,
+    (std::string) name,
+    (std::string) desc
+);
+
+DB_TABLE(
     ClassData,
     (table_key) id,
     (std::string) name,
@@ -90,6 +97,11 @@ public:
         FillJSON<SpellData>(json);
         FillJSON<EncounterData>(json);
         FillJSON<ClassData>(json);
+        
+        std::vector<ModuleData> result = 
+            g_db.Select<ModuleData>({"id", "name", "desc"}).Exec();
+        nlohmann::json j = nlohmann::json::parse(result[0].ToJSON());
+        json[ModuleData::Name()] = j;
 
         tpl.SetJsonData(json.dump());
         
@@ -278,6 +290,8 @@ public:
             Update<EncounterData>(request, response);
         else if(request["object"] == "class")
             Update<ClassData>(request, response);
+        else if(request["object"] == "module")
+            Update<ModuleData>(request, response);
     }
 };
 
@@ -349,7 +363,12 @@ public:
     void operator()(const HTTPRequest& request, HTTPResponse& response)
     {
         std::vector<char> data = request.FileData("file");
-        std::ofstream fout(std::string("data") + "." + util::FileNameExtension(request.FileName("file")), std::ios::out | std::ios::binary);
+        std::ofstream fout(
+            std::string("data") + 
+            "." + 
+            util::FileNameExtension(request.FileName("file")), 
+            std::ios::out | std::ios::binary
+        );
         fout.write((char*)&data[0], data.size());
         fout.close();
     }
