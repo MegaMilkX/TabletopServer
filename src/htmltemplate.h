@@ -82,7 +82,7 @@ public:
             int i = 0;
             for(nlohmann::json::iterator it = json.begin(); it != json.end(); ++it)
             {
-                lua_pushinteger(L, i);
+                lua_pushinteger(L, i+1);
                 SetJsonDataImpl(std::to_string(i), *it, L);
                 lua_settable(L, -3);
                 i++;
