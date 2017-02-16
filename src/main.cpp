@@ -45,6 +45,11 @@ DB_TABLE(
 DB_TABLE(
     SpellData,
     (table_key) id,
+    (std::string) castTime,
+    (std::string) components,
+    (std::string) duration,
+    (std::string) range,
+    (std::string) school,
     (std::string) name,
     (std::string) desc,
     (int) level,
@@ -102,7 +107,7 @@ public:
             g_db.Select<ModuleData>({"id", "name", "desc"}).Exec();
         nlohmann::json j = nlohmann::json::parse(result[0].ToJSON());
         json[ModuleData::Name()] = j;
-
+        
         tpl.SetJsonData(json.dump());
         
         response.Header("Content-Type", "text/html; charset=UTF-8");
@@ -374,10 +379,31 @@ public:
     }
 };
 
+#include "spellsjson.h"
+
 int main()
 {
     g_db.Init();
+    /*
+    nlohmann::json json = nlohmann::json::parse(std::string((char*)g_spells_json, sizeof(g_spells_json)));
     
+    for(nlohmann::json::iterator it = json.begin(); 
+        it != json.end(); 
+        ++it)
+    {
+        SpellData data = { 0 };
+        data.name = it.key();
+        data.castTime = it.value()["casting_time"].get<std::string>();
+        data.components = it.value()["components"].get<std::string>();
+        data.duration = it.value()["duration"].get<std::string>();
+        data.range = it.value()["range"].get<std::string>();
+        data.school = it.value()["school"].get<std::string>();
+        data.desc = it.value()["description"].get<std::string>();
+        data.level = it.value()["level"].get<int>();
+        data.classId = 0;
+        g_db.Insert(data).Exec();
+    }
+    */
     HTTPServer server;
     server.Init();
     
