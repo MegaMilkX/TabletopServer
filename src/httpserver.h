@@ -55,8 +55,8 @@ public:
             if(newSocket == INVALID_SOCKET)
                 continue;
             
-            // Make socket non-blocking
-            ioctlsocket(newSocket, FIONBIO, (u_long*)1);
+            u_long iMode=0;
+            ioctlsocket(newSocket, FIONBIO, &iMode);
             
             HTTPRequest request;
             
