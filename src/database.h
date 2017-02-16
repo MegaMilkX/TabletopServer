@@ -25,9 +25,10 @@ public:
         }
         
         if(fields.empty())
+        {
             query += " * ";
-        
-        this->fields = T::GetAllFieldNames();
+            this->fields = T::GetAllFieldNames();
+        }
         
         query += " FROM ";
         
